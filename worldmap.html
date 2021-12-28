@@ -1,0 +1,116 @@
+<html>
+    <head>
+        <title>
+            ThreeJs World Map
+        </title>
+
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+            }
+            #container {
+                width: 100vw;
+                height: 100vh;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="container">
+        </div>
+    </body>
+    <script type="module">
+        /**
+         * 读取世界地图图片，使用 THREE.Points 将读取的 ImageData 渲染至场景中
+         */
+        import * as THREE from "https://cdn.skypack.dev/pin/three@v0.136.0-4Px7Kx1INqCFBN0tXUQc/mode=imports,min/optimized/three.js";
+
+        import {OrbitControls} from "https://cdn.skypack.dev/three@v0.136.0-4Px7Kx1INqCFBN0tXUQc/examples/jsm/controls/OrbitControls.js";
+
+        const container = document.getElementById("container");
+
+        let scene, renderer, camera, imagedata;
+
+        let textureLoader = new THREE.TextureLoader();
+
+        const setSize = (container, camera, renderer) => {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+
+            renderer.setSize(container.clientWidth, container.clientHeight);
+
+            renderer.setPixelRatio(window.devicePixelRatio);
+        };
+
+        var getImageData = function (image) {
+
+            var canvas = document.createElement("canvas");
+            canvas.width = image.width;
+            canvas.height = image.height;
+
+            var ctx = canvas.getContext("2d");
+            ctx.drawImage(image, 0, 0);
+
+            return ctx.getImageData(0, 0, image.width, image.height);
+        }
+
+        const drawTheMap = () => {
+            const geo = new THREE.BufferGeometry();
+            const mat = new THREE.PointsMaterial({
+                color: "white"
+            });
+
+            const vertexs = [];
+            for (var y = 0, y2 = imagedata.height; y < y2; y += 2) {
+                for (var x = 0, x2 = imagedata.width; x < x2; x += 2) {
+                    if (imagedata.data[(x * 4 + y * 4 * imagedata.width) + 3] > 128) {
+
+                        var vertex = new THREE.Vector3(x - imagedata.width / 2, -y + imagedata.height / 2, 0);
+
+                        vertexs.push(vertex);
+                    }
+                }
+            }
+
+            geo.setFromPoints(vertexs);
+
+            const particles = new THREE.Points(geo, mat);
+
+            scene.add(particles);
+        };
+
+        const rener = () => {
+            scene = new THREE.Scene();
+
+            renderer = new THREE.WebGLRenderer();
+            container.appendChild(renderer.domElement);
+
+            camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+            camera.position.set(0, 0, 400);
+
+            const controls = new OrbitControls(camera, renderer.domElement);
+            controls.update();
+
+            textureLoader.load(
+                "./assests/image/transparentWorldMap.png",
+                (texture) => {
+                    imagedata = getImageData(texture.image);
+                    drawTheMap();
+                });
+
+            setSize(container, camera, renderer);
+            window.addEventListener("resize", () => setSize(container, camera, renderer));
+
+            const animation = () => {
+                renderer.render(scene, camera);
+
+                requestAnimationFrame(animation);
+            };
+
+            requestAnimationFrame(animation);
+
+        };
+
+        rener();
+    </script>
+</html>
