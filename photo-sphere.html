@@ -39,12 +39,16 @@
             const points = [new THREE.Vector3(0, radius, 0), new THREE.Vector3(0, -radius, 0)]; // 南北极点
             
             // 从上往下一圈一圈的计算点
+            const anglePart_h = 2 * Math.PI / split;
+            const anglePart_v = Math.PI / (split + 1);
             for (let h = 0; h < split; h++) {
                 const y = radius - (h + 1) * 2 * radius / (split + 1);
+                // const y = Math.cos((h + 1) * anglePart_v) * radius;
+
                 for (let v = 0; v < split; v++) {
                     const hl = Math.sqrt(radius * radius - y * y);
-                    const angle = 2 * Math.PI * v / split;
-
+                    let angle = v * anglePart_h;
+                    angle += 0.5 * anglePart_h * (h % 2); // 将图片错开
                     const x = Math.cos(angle) * hl;
                     const z = Math.sin(angle) * hl;
 
@@ -70,7 +74,7 @@
             setSize(container, camera, renderer);
             window.addEventListener("resize", () => setSize(container, camera, renderer));
 
-            const points = getSpherePoints(200, 10);
+            const points = getSpherePoints(200, 30);
 
             const geo = new THREE.BufferGeometry();
             geo.setFromPoints(points);
