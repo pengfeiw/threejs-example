@@ -1,7 +1,7 @@
 <html>
     <head>
         <title>
-            ThreeJs World Map
+            Photo Sphere | ThreeJS
         </title>
 
         <style>
@@ -21,12 +21,10 @@
     </body>
     <script type="module">
         /**
-         * 读取世界地图图片，使用 THREE.Points 将读取的 ImageData 渲染至场景中
+         * 读取多张图片，渲染成一个图片球
          */
         import * as THREE from "https://cdn.skypack.dev/pin/three@v0.136.0-4Px7Kx1INqCFBN0tXUQc/mode=imports,min/optimized/three.js";
-
         import {OrbitControls} from "https://cdn.skypack.dev/three@v0.136.0-4Px7Kx1INqCFBN0tXUQc/examples/jsm/controls/OrbitControls.js";
-
         import {setSize} from "./script/util.js";
 
         const container = document.getElementById("container");
@@ -34,42 +32,27 @@
         let scene, renderer, camera, imagedata;
 
         let textureLoader = new THREE.TextureLoader();
+        
+        // count: 点的数量；radius: 球体半径
+        const getSpherePoints = (count, radius) => {
+            const split = Math.ceil(Math.sqrt(count- 2));
+            const points = [new THREE.Vector3(0, radius, 0), new THREE.Vector3(0, -radius, 0)]; // 南北极点
+            
+            // 从上往下一圈一圈的计算点
+            for (let h = 0; h < split; h++) {
+                const y = radius - (h + 1) * 2 * radius / (split + 1);
+                for (let v = 0; v < split; v++) {
+                    const hl = Math.sqrt(radius * radius - y * y);
+                    const angle = 2 * Math.PI * v / split;
 
-        var getImageData = function (image) {
+                    const x = Math.cos(angle) * hl;
+                    const z = Math.sin(angle) * hl;
 
-            var canvas = document.createElement("canvas");
-            canvas.width = image.width;
-            canvas.height = image.height;
-
-            var ctx = canvas.getContext("2d");
-            ctx.drawImage(image, 0, 0);
-
-            return ctx.getImageData(0, 0, image.width, image.height);
-        }
-
-        const drawTheMap = () => {
-            const geo = new THREE.BufferGeometry();
-            const mat = new THREE.PointsMaterial({
-                color: "white"
-            });
-
-            const vertexs = [];
-            for (var y = 0, y2 = imagedata.height; y < y2; y += 2) {
-                for (var x = 0, x2 = imagedata.width; x < x2; x += 2) {
-                    if (imagedata.data[(x * 4 + y * 4 * imagedata.width) + 3] > 128) {
-
-                        var vertex = new THREE.Vector3(x - imagedata.width / 2, -y + imagedata.height / 2, 0);
-
-                        vertexs.push(vertex);
-                    }
+                    points.push(new THREE.Vector3(x, y, z));
                 }
             }
 
-            geo.setFromPoints(vertexs);
-
-            const particles = new THREE.Points(geo, mat);
-
-            scene.add(particles);
+            return points;
         };
 
         const rener = () => {
@@ -84,15 +67,25 @@
             const controls = new OrbitControls(camera, renderer.domElement);
             controls.update();
 
-            textureLoader.load(
-                "./assests/image/transparentWorldMap.png",
-                (texture) => {
-                    imagedata = getImageData(texture.image);
-                    drawTheMap();
-                });
-
             setSize(container, camera, renderer);
             window.addEventListener("resize", () => setSize(container, camera, renderer));
+
+            const points = getSpherePoints(200, 10);
+
+            const geo = new THREE.BufferGeometry();
+            geo.setFromPoints(points);
+
+            const mat = new THREE.PointsMaterial({
+                size: 3,
+                map: textureLoader.load("https://learnopengl-cn.github.io/img/index_image2.png"),
+                transparent: true
+            });
+
+            const p = new THREE.Points(geo, mat);
+
+            console.log(points.length);
+
+            scene.add(p);
 
             const animation = () => {
                 renderer.render(scene, camera);
@@ -101,7 +94,6 @@
             };
 
             requestAnimationFrame(animation);
-
         };
 
         rener();
